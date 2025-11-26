@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Email Generator</title>
+    <!-- Load Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for better aesthetics */
+        textarea::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar-thumb { background-color: #a7f3d0; border-radius: 4px; }
+        textarea::-webkit-scrollbar-track { background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-start justify-center p-4 sm:p-8 font-sans">
+
+    <div class="w-full max-w-4xl bg-white shadow-xl rounded-2xl p-6 md:p-10 border border-gray-100 mt-10">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-2">
+                <span class="text-emerald-600">Gemini</span> Email Generator
+            </h1>
+            <p class="text-gray-500">Quickly draft professional, friendly, or urgent emails.</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Input Form -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Your Request</h2>
+                <form id="emailForm" class="space-y-4">
+                    <!-- Topic Input -->
+                    <div>
+                        <label for="topic" class="block text-sm font-medium text-gray-700 mb-1">
+                            Key Points & Purpose (What should the email be about?)
+                        </label>
+                        <textarea id="topic" rows="6" required 
+                            class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-150"
+                            placeholder="e.g., Follow up on the Q3 report, mention the budget approval, and ask for a meeting next week."></textarea>
+                    </div>
+                    
+                    <!-- Tone Selector -->
+                    <div>
+                        <label for="tone" class="block text-sm font-medium text-gray-700 mb-1">
+                            Select Tone
+                        </label>
+                        <select id="tone" 
+                            class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 appearance-none bg-white transition duration-150">
+                            <option value="professional">Professional</option>
+                            <option value="friendly">Friendly and Casual</option>
+                            <option value="urgent">Urgent and Direct</option>
+                            <option value="apologetic">Apologetic and Formal</option>
+                            <option value="salesy">Persuasive/Salesy</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="generateButton" 
+                        class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Generate Email Draft
+                    </button>
+
+                    <!-- Status Message -->
+                    <div id="statusMessage" class="text-center p-2 text-sm text-red-600 hidden rounded-lg bg-red-50"></div>
+                </form>
+            </div>
+
+            <!-- Output Display -->
+            <div class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Generated Email</h2>
+                
+                <div id="loadingIndicator" class="hidden text-center p-4">
+                    <div class="animate-spin inline-block w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
+                    <p class="mt-2 text-gray-600">Drafting your email...</p>
+                </div>
+
+                <div id="emailOutput" class="space-y-4 hidden">
+                    <!-- Subject Line -->
+                    <div class="p-3 bg-gray-100 rounded-lg shadow-inner">
+                        <p class="text-xs font-semibold text-gray-500 uppercase">Subject</p>
+                        <p id="subjectDisplay" class="text-lg font-medium text-gray-900 mt-1 break-words"></p>
+                    </div>
+
+                    <!-- Email Body -->
+                    <div class="p-4 bg-white border border-gray-200 rounded-lg shadow-md min-h-[250px] whitespace-pre-wrap">
+                        <p id="bodyDisplay" class="text-gray-700 leading-relaxed"></p>
+                    </div>
+
+                    <!-- Copy Button -->
+                    <button id="copyButton" 
+                        class="w-full py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition duration-200">
+                        Copy Email Text
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const form = document.getElementById('emailForm');
+        const topicInput = document.getElementById('topic');
+        const toneInput = document.getElementById('tone');
+        const generateButton = document.getElementById('generateButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const emailOutput = document.getElementById('emailOutput');
+        const subjectDisplay = document.getElementById('subjectDisplay');
+        const bodyDisplay = document.getElementById('bodyDisplay');
+        const copyButton = document.getElementById('copyButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Function to show status messages (errors/warnings)
+        function setStatus(message, isError = true) {
+            statusMessage.textContent = message;
+            statusMessage.classList.remove('hidden');
+            statusMessage.classList.toggle('text-red-600', isError);
+            statusMessage.classList.toggle('bg-red-50', isError);
+            statusMessage.classList.toggle('text-green-600', !isError);
+            statusMessage.classList.toggle('bg-green-50', !isError);
+            setTimeout(() => {
+                statusMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Function to toggle loading state
+        function setLoading(isLoading) {
+            generateButton.disabled = isLoading;
+            generateButton.textContent = isLoading ? 'Generating...' : 'Generate Email Draft';
+            loadingIndicator.classList.toggle('hidden', !isLoading);
+            emailOutput.classList.add('hidden');
+            statusMessage.classList.add('hidden');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            const topic = topicInput.value.trim();
+            const tone = toneInput.value;
+
+            if (!topic) {
+                setLoading(false);
+                setStatus("Please enter the key points for the email.", true);
+                return;
+            }
+
+            try {
+                // Fetch call to the Flask backend's /generate route
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ topic, tone })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    setStatus(data.error || "An unknown error occurred during generation.", true);
+                    return;
+                }
+
+                // Display the structured email parts
+                subjectDisplay.textContent = data.subject;
+                bodyDisplay.textContent = data.body; 
+                emailOutput.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                setStatus("Could not connect to the backend server or API.", true);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Copy functionality
+        copyButton.addEventListener('click', () => {
+            const subject = subjectDisplay.textContent;
+            const body = bodyDisplay.textContent;
+            
+            // Combine subject and body for easy copying
+            const fullEmailText = `Subject: ${subject}\n\n${body}`;
+
+            // Create a temporary textarea to hold and copy the text
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = fullEmailText;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            
+            try {
+                // document.execCommand('copy') is used for broader compatibility
+                document.execCommand('copy');
+                setStatus("Email copied to clipboard!", false);
+            } catch (err) {
+                setStatus("Failed to copy. Please copy manually.", true);
+                console.error('Copy failed:', err);
+            } finally {
+                document.body.removeChild(tempTextarea);
+            }
+        });
+
+    </script>
+</body>
+</html>

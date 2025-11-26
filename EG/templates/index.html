@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Email Generator</title>
+    <link rel="stylesheet" href="style.css"> </head>
+<body>
+    <div id="result-container" class="result-container"></div>
+    <div class="container">
+        <h1>📧 AI Email Generator</h1>
+        <form id="emailForm">
+            <div class="form-group">
+     <div id="result-container" class="result-container hidden"></div>           <label for="recipient">Recipient Name:</label>
+                <input type="text" id="recipient" name="recipient" required>
+            </div>
+
+            <div class="form-group">
+                <label for="emailType">Email Purpose/Type:</label>
+                <select id="emailType" name="emailType" required>
+                    <option value="">-- Select Purpose --</option>
+                    <option value="followup">Sales Follow-up</option>
+                    <option value="meeting">Meeting Request</option>
+                    <option value="onboarding">Customer Onboarding</option>
+                    <option value="custom">Custom/Other...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="keywords">Key Details/Keywords (e.g., product name, context, offer):</label>
+                <textarea id="keywords" name="keywords" rows="4" required></textarea>
+            </div>
+            
+            <button type="submit" class="generate-btn">Generate Email</button>
+        </form>
+
+        <div id="result-container" class="result-container hidden">
+            <h2>✨ Generated Email</h2>
+            <div id="generatedEmail" class="email-output">
+                </div>
+            <button class="copy-btn" onclick="copyEmail()">Copy to Clipboard</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script> </body>
+</html>
